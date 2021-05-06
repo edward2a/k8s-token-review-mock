@@ -5,6 +5,8 @@
 package main
 
 import (
+  "flag"
+  "fmt"
   "io/ioutil"
   "log"
   "net/http"
@@ -43,19 +45,39 @@ const (
 )
 
 func main() {
-  // Print token info
+
+  tls := flag.Bool("tls", false, "Enable TLS listener")
+  key := flag.String("key", "ssl_key.pem", "TLS private key")
+  cert := flag.String("cert", "ssl_cert.pem", "TLS certificate")
+  addr := flag.String("addr", "localhost", "Bind address")
+  port := flag.Int("port", 8080, "Listener port (8080 | 8443)")
+  flag.Parse()
+
+  if (*tls && *port == 8080) { *port = 8443 }
+  bind_addr :=  fmt.Sprintf("%s:%d", *addr, *port)
+
+  // Print init info
   log.Printf("JWT service account for service: %s \n", serviceJWT)
   log.Printf("JWT service account for agent: %s \n", agentJWT)
+  if (*tls) { log.Printf("TLS enabled") }
+  log.Printf("Listen address: %s", bind_addr)
 
   // Set routing rules
   http.HandleFunc("/apis/authentication.k8s.io/v1/tokenreviews", TokenReview)
   http.HandleFunc("/", Nope)
 
-  //Use the default DefaultServeMux.
-  err := http.ListenAndServe(":8080", nil)
+  //Use the default DefaultServeMux; start plain or tls server
+  var err error
+  if !(*tls) {
+    err = http.ListenAndServe(bind_addr, nil)
+  } else {
+    err = http.ListenAndServeTLS(bind_addr, *cert, *key, nil)
+  }
+
   if err != nil {
     log.Fatal(err)
   }
+
 }
 
 func TokenReview(w http.ResponseWriter, r *http.Request) {
@@ -74,5 +96,6 @@ func TokenReview(w http.ResponseWriter, r *http.Request) {
 func Nope(w http.ResponseWriter, r *http.Request) {
   w.WriteHeader(418)
   w.Write([]byte("Nope...\n"))
+  w.Write([]byte("Try '/apis/authentication.k8s.io/v1/tokenreviews'\n"))
   return
 }
