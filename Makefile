@@ -15,6 +15,9 @@ docker-perms:
 	[ -z "$${CALLER_UID}" ] || chown $${CALLER_UID}:$${CALLER_UID} $${outputFilename}
 	chmod 750 $${outputFilename}
 
+tls-certs:
+	openssl req -new -x509 -newkey rsa:2048 -nodes -keyout ssl_key.pem -days 3650 -out ssl_cert.pem -config tls.cnf
+
 clean:
 	docker rmi alpine_go_builder
 	rm -f ${code}
