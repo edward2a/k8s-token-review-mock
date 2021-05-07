@@ -44,6 +44,9 @@ const (
 `
 )
 
+var agentToken string
+var serviceToken string
+
 func main() {
 
   tls := flag.Bool("tls", false, "Enable TLS listener")
@@ -51,14 +54,35 @@ func main() {
   cert := flag.String("cert", "ssl_cert.pem", "TLS certificate")
   addr := flag.String("addr", "localhost", "Bind address")
   port := flag.Int("port", 8080, "Listener port (8080 | 8443)")
+  ajwt := flag.String("agent-token", "none", "The client auth token")
+  sjwt := flag.String("service-token", "none", "The service auth token")
   flag.Parse()
 
+  // Load agent token from file if required, else use agentJWT const
+  if (*ajwt != "none") {
+    at, err := ioutil.ReadFile(*ajwt)
+    if err != nil { log.Fatal(err) }
+    agentToken = string(at)
+  } else {
+    agentToken = agentJWT
+  }
+
+  // Load service token from file if required, else use serviceJWT const
+  if (*sjwt != "none") {
+    st, err := ioutil.ReadFile(*sjwt)
+    if err != nil { log.Fatal(err) }
+    serviceToken = string(st)
+  } else {
+    serviceToken = serviceJWT
+  }
+
+  // Change port to 8443 if tls and not port defined
   if (*tls && *port == 8080) { *port = 8443 }
   bind_addr :=  fmt.Sprintf("%s:%d", *addr, *port)
 
   // Print init info
-  log.Printf("JWT service account for service: %s \n", serviceJWT)
-  log.Printf("JWT service account for agent: %s \n", agentJWT)
+  log.Printf("JWT service account for service: %s \n", serviceToken)
+  log.Printf("JWT service account for agent: %s \n", agentToken)
   if (*tls) { log.Printf("TLS enabled") }
   log.Printf("Listen address: %s", bind_addr)
 
@@ -82,18 +106,22 @@ func main() {
 
 func TokenReview(w http.ResponseWriter, r *http.Request) {
   body, _ := ioutil.ReadAll(r.Body)
-  if strings.Contains(string(body), agentJWT) {
+  if strings.Contains(string(body), agentToken) {
+    log.Printf("INFO: Request successful\n")
     w.WriteHeader(200)
     w.Write([]byte(authenticatedUser))
     return
   }
 
+  log.Printf("INFO: Request failed")
+  log.Printf("%s", body)
   w.WriteHeader(401)
   w.Write([]byte(unauthenticatedUser))
   return
 }
 
 func Nope(w http.ResponseWriter, r *http.Request) {
+  log.Printf("INFO: Request unhandled")
   w.WriteHeader(418)
   w.Write([]byte("Nope...\n"))
   w.Write([]byte("Try '/apis/authentication.k8s.io/v1/tokenreviews'\n"))
