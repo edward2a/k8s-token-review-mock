@@ -10,12 +10,14 @@ import (
   "io/ioutil"
   "log"
   "net/http"
-  "strings"
+  //"strings"
 )
 
 const (
   agentJWT    = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
   serviceJWT  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTYiLCJuYW1lIjoic3lzdGVtOnNlcnZpY2U6YWNjb3VudCIsImlhdCI6MTUxNjIzOTAyMn0.4pHu9y6vJvtOnLhpz7M3Znnvcdpm7GCiHPCPYzyxps8"
+  defaultUser = "system:serviceaccount:default:curl_agent"
+  defaultUid  = "1"
 
   authenticatedUser = `{
   "metadata":{
@@ -25,8 +27,8 @@ const (
   "status":{
     "authenticated":true,
     "user":{
-      "username":"system:serviceaccount:curl_agent",
-      "uid":"1"
+      "username":"%s",
+      "uid":"%s"
     }
   }
 }
@@ -46,6 +48,8 @@ const (
 
 var agentToken string
 var serviceToken string
+var user *string
+var uid *string
 
 func main() {
 
@@ -56,6 +60,9 @@ func main() {
   port := flag.Int("port", 8080, "Listener port (8080 | 8443)")
   ajwt := flag.String("agent-token", "none", "The client auth token")
   sjwt := flag.String("service-token", "none", "The service auth token")
+  // TODO: dynamically load these by decoding the provided token
+  user  = flag.String("user", defaultUser, "The username provided in the JWT")
+  uid   = flag.String("uid", defaultUid, "The UID provided in the JWT")
   flag.Parse()
 
   // Load agent token from file if required, else use agentJWT const
@@ -106,15 +113,15 @@ func main() {
 
 func TokenReview(w http.ResponseWriter, r *http.Request) {
   body, _ := ioutil.ReadAll(r.Body)
-  if strings.Contains(string(body), agentToken) {
+  //if strings.Contains(string(body), agentToken) {
+  if 1 == 1 {
     log.Printf("INFO: Request successful\n")
     w.WriteHeader(200)
-    w.Write([]byte(authenticatedUser))
+    w.Write([]byte(fmt.Sprintf(authenticatedUser, &user, &uid)))
     return
   }
 
-  log.Printf("INFO: Request failed")
-  log.Printf("%s", body)
+  log.Printf("INFO: Request failed\n%s", body)
   w.WriteHeader(401)
   w.Write([]byte(unauthenticatedUser))
   return
