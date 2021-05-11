@@ -115,9 +115,9 @@ func TokenReview(w http.ResponseWriter, r *http.Request) {
   body, _ := ioutil.ReadAll(r.Body)
   //if strings.Contains(string(body), agentToken) {
   if 1 == 1 {
-    log.Printf("INFO: Request successful\n")
+    log.Printf("INFO: Request successful\n%s", fmt.Sprintf(authenticatedUser, *user, *uid))
     w.WriteHeader(200)
-    w.Write([]byte(fmt.Sprintf(authenticatedUser, &user, &uid)))
+    w.Write([]byte(fmt.Sprintf(authenticatedUser, *user, *uid)))
     return
   }
 
