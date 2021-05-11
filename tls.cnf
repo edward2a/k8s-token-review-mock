@@ -17,6 +17,6 @@ subjectAltName = @alt_names
 
 [alt_names]
 DNS.1 = localhost
-DNS.2 = vault
-DNS.3 = vault.example.local
+DNS.2 = token-review
+DNS.3 = token.example.local
 DNS.4 = *.vault.example.local
